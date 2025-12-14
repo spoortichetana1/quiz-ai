@@ -17,7 +17,12 @@
         <div class="subtitle">Generate a quiz, answer it, get explanations.</div>
       </div>
     </div>
-    <div class="pill" id="statusPill">Backend: unknown</div>
+
+    <!-- Updated: clearer backend status + small helper text -->
+    <div class="statusWrap">
+      <div class="pill" id="statusPill">Backend: checking…</div>
+      <div class="statusHint" id="statusHint">Start bhackend to use AI generation.</div>
+    </div>
   </header>
 
   <main class="container">
@@ -25,6 +30,14 @@
     <!-- SETUP VIEW -->
     <section class="card" id="viewSetup">
       <h2>Create your quiz</h2>
+
+      <!-- Updated: quick presets (optional, but helpful for kids) -->
+      <div class="presetRow">
+        <button class="chip" data-preset="Fractions add and subtract">Fractions</button>
+        <button class="chip" data-preset="Solar System planets and facts">Solar System</button>
+        <button class="chip" data-preset="Dinosaurs types and time periods">Dinosaurs</button>
+        <button class="chip" data-preset="Python basics variables loops">Python</button>
+      </div>
 
       <div class="grid">
         <label class="field">
@@ -52,22 +65,38 @@
           </select>
           <small>Start with 5 if you want it faster.</small>
         </label>
+
+        <!-- Updated: include explanations toggle (frontend only; backend always returns explanations) -->
+        <label class="field">
+          <span>Show explanations</span>
+          <select id="explainSelect">
+            <option value="yes" selected>Yes (recommended)</option>
+            <option value="no">No</option>
+          </select>
+          <small>Turn off if you want to test yourself first.</small>
+        </label>
       </div>
 
       <div class="row">
-        <button class="btn primary" id="btnGenerate">Generate Quiz</button>
+        <button class="btn primary" id="btnGenerate">Generate Quiz (AI)</button>
         <button class="btn" id="btnLoadMock" title="Loads a demo quiz without calling backend">Load Demo Quiz</button>
       </div>
 
+      <!-- Updated: clearer “how it works” and a quick “is backend running” checklist -->
       <div class="hint">
-        <strong>How it works:</strong> Live Server runs this page. The backend generates questions (AI or mock) and sends them back here.
+        <strong>How it works:</strong> Live Server runs this page. Your bhackend (FastAPI) generates quiz JSON and sends it here.
+        <div class="checklist">
+          <div>✅ Live Server open</div>
+          <div>✅ bhackend running at <code>http://127.0.0.1:8000</code></div>
+          <div>✅ <code>/health</code> shows <code>"mock": false</code> for real AI</div>
+        </div>
       </div>
     </section>
 
     <!-- LOADING VIEW -->
     <section class="card hidden" id="viewLoading">
       <h2>Generating your quiz…</h2>
-      <p class="muted">This may take a few seconds.</p>
+      <p class="muted" id="loadingHint">This may take a few seconds.</p>
       <div class="loader"></div>
       <button class="btn" id="btnCancelLoading">Cancel</button>
     </section>
@@ -103,11 +132,14 @@
         <div class="muted" id="scoreMessage">—</div>
       </div>
 
-      <div id="reviewArea" class="reviewArea"></div>
-
       <div class="row">
+        <!-- Updated: quick action buttons -->
+        <button class="btn" id="btnReview">Review Answers</button>
+        <button class="btn" id="btnTryAgain">Try Same Quiz Again</button>
         <button class="btn primary" id="btnNewQuiz">Create New Quiz</button>
       </div>
+
+      <div id="reviewArea" class="reviewArea hidden"></div>
     </section>
 
     <!-- ERROR BAR -->
@@ -118,5 +150,13 @@
   <footer class="footer">
     <span>Tip: If backend is off, you can still use “Load Demo Quiz”.</span>
   </footer>
+
+  <!-- NOTE:
+    This updated HTML adds a few new IDs:
+      - statusHint, explainSelect, loadingHint
+      - btnReview, btnTryAgain
+      - reviewArea now starts hidden in results view
+    Your script.js should be updated to use these (I can generate updated script.js next).
+  -->
 </body>
 </html>
