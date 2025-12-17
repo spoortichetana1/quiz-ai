@@ -104,7 +104,7 @@ function setStatus(ok, mock) {
 
   if (!ok) {
     statusPill.textContent = "Backend: OFF (demo works)";
-    if (statusHint) statusHint.textContent = "Start bhackend to use AI generation.";
+    if (statusHint) statusHint.textContent = "Start backend to use AI generation.";
     return;
   }
 
@@ -169,6 +169,25 @@ function renderQuestion() {
     r.addEventListener("change", (e) => {
       const val = Number(e.target.value);
       userAnswers[currentIndex] = val;
+    });
+  });
+  updateOptionVisuals();
+}
+
+function updateOptionVisuals() {
+  const options = questionArea.querySelectorAll(".option");
+  options.forEach((opt, idx) => {
+    const input = opt.querySelector("input");
+    if (!input) return;
+    const checked = Number(input.value) === userAnswers[currentIndex];
+    opt.classList.toggle("selected", checked);
+    input.addEventListener("focus", () => {
+      opt.classList.add("selected");
+    });
+    input.addEventListener("blur", () => {
+      if (!checked) {
+        opt.classList.remove("selected");
+      }
     });
   });
 }

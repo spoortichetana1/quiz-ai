@@ -5,12 +5,10 @@ What this backend does:
 - Exposes:
   - GET  /health
   - POST /generate-quiz
-- Generates quizzes either using:
-  - OpenAI LLM (when QUIZ_USE_MOCK=false and OPENAI_API_KEY is set)
-  - Mock generator (fallback for development)
+- Generates quizzes solely using OpenAI LLM.
 
 Run backend (Windows PowerShell):
-1) cd bhackend
+1) cd backend
 2) python -m venv .venv
 3) .\.venv\Scripts\Activate.ps1
 4) pip install -r requirements.txt
@@ -43,7 +41,6 @@ Difficulty = Literal["easy", "medium", "hard"]
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
-QUIZ_USE_MOCK = os.getenv("QUIZ_USE_MOCK", "true").lower() == "true"
 
 # OpenAI SDK (optional, only required if using LLM)
 try:
@@ -74,6 +71,29 @@ class QuizResponse(BaseModel):
     questions: List[QuizQuestion]
 
 
+def shuffle_question_options(question: QuizQuestion) -> QuizQuestion:
+    """
+    Randomly permute the options while keeping track of which one is correct.
+    """
+    indices = list(range(len(question.options)))
+    random.shuffle(indices)
+
+    target_index = (
+        question.answer_index
+        if 0 <= question.answer_index < len(question.options)
+        else 0
+    )
+
+    reordered_options = [question.options[i] for i in indices]
+    new_answer_index = indices.index(target_index)
+
+    return QuizQuestion(
+        question=question.question,
+        options=reordered_options,
+        answer_index=new_answer_index,
+        explanation=question.explanation,
+    )
+
 # -----------------------------
 # FastAPI app
 # -----------------------------
@@ -89,75 +109,13 @@ app.add_middleware(
 )
 
 
-def should_use_mock() -> bool:
-    """
-    Decide when to use mock mode.
-    We use mock if:
-    - QUIZ_USE_MOCK=true
-    - API key is missing
-    - OpenAI SDK isn't installed/available
-    """
-    if QUIZ_USE_MOCK:
-        return True
-    if not OPENAI_API_KEY:
-        return True
-    if OpenAI is None:
-        return True
-    return False
-
-
 @app.get("/health")
 def health():
     """
     Quick status endpoint for the frontend.
     """
-    return {"status": "ok", "mock": should_use_mock(), "model": OPENAI_MODEL}
-
-
-# -----------------------------
-# Mock quiz generator (offline)
-# -----------------------------
-def generate_mock_quiz(topic: str, difficulty: Difficulty, count: int) -> QuizResponse:
-    """
-    Generates a quiz without calling any AI.
-    This is useful if backend is on but you don't want to spend API credits.
-    """
-    rng = random.Random(f"{topic}-{difficulty}-{count}")
-
-    base_q = [
-        f"Which statement about {topic} is correct?",
-        f"What is a key idea in {topic}?",
-        f"Choose the best answer about {topic}.",
-        f"Which option best matches {topic}?",
-        f"What would be an example of {topic}?",
-    ]
-
-    questions: List[QuizQuestion] = []
-    for i in range(count):
-        qtext = f"{base_q[i % len(base_q)]} (Q{i+1})"
-
-        options = [
-            f"{topic}: basic idea ({difficulty})",
-            f"{topic}: common mistake ({difficulty})",
-            f"{topic}: deeper detail ({difficulty})",
-            f"{topic}: unrelated choice ({difficulty})",
-        ]
-
-        answer_index = rng.randint(0, 3)
-        explanation = (
-            f"Mock mode is ON. Option {answer_index + 1} is marked correct so the app works without AI."
-        )
-
-        questions.append(
-            QuizQuestion(
-                question=qtext,
-                options=options,
-                answer_index=answer_index,
-                explanation=explanation,
-            )
-        )
-
-    return QuizResponse(topic=topic, difficulty=difficulty, questions=questions)
+    # indicate mode via /health so clients know the backend is in AI-only mode
+    return {"status": "ok", "mock": False, "model": OPENAI_MODEL, "mode": "ai"}
 
 
 # -----------------------------
@@ -186,6 +144,8 @@ Constraints:
 - Exactly one correct option.
 - Avoid trick questions.
 - Explanations must explain WHY in 1–2 sentences.
+- The correct answer must not always be the first option; randomly place the right option somewhere among the four choices.
+- answer_index must vary across 0–3 so every slot can host the correct answer.
 
 Return JSON with this exact shape:
 {{
@@ -202,7 +162,7 @@ Return JSON with this exact shape:
 }}
 
 Rules:
-- answer_index must be 0,1,2, or 3
+- answer_index must be 0,1,2, or 3 and should be distributed so the correct option is not stuck at index 0.
 - options must be 4 short strings
 - Keep questions unambiguous
 """.strip()
@@ -258,7 +218,12 @@ def call_openai_quiz(topic: str, difficulty: Difficulty, count: int) -> QuizResp
         if len(q.options) != 4:
             raise ValueError(f"Question {i+1} has {len(q.options)} options (expected 4).")
 
-    return quiz
+    shuffled_questions = [shuffle_question_options(q) for q in quiz.questions]
+    return QuizResponse(
+        topic=quiz.topic,
+        difficulty=quiz.difficulty,
+        questions=shuffled_questions,
+    )
 
 
 # -----------------------------
@@ -270,11 +235,6 @@ def generate_quiz(req: QuizRequest):
     if not topic:
         raise HTTPException(status_code=400, detail="Topic cannot be empty.")
 
-    # If mock mode is enabled OR key is missing, return mock quiz
-    if should_use_mock():
-        return generate_mock_quiz(topic, req.difficulty, req.count)
-
-    # Otherwise, call OpenAI
     try:
         return call_openai_quiz(topic, req.difficulty, req.count)
     except ValueError as e:
