@@ -1,21 +1,21 @@
 :root{
-  --bg: #0b0f19;
-  --card: #121a2a;
-  --card2: #0f1626;
-  --text: #e9eefc;
-  --muted: #a7b3d6;
-  --border: rgba(255,255,255,0.10);
-  --accent: #6ee7ff;
-  --accent2: #a78bfa;
-  --danger: #ff6b6b;
+  --bg: #f5f8ff;
+  --card: #ffffff;
+  --card2: #edf2ff;
+  --text: #111827;
+  --muted: #64748b;
+  --border: rgba(148,163,184,0.24);
+  --accent: #2563eb;
+  --accent2: #7c3aed;
+  --danger: #dc2626;
 }
 
 *{ box-sizing: border-box; }
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-  background: radial-gradient(1200px 600px at 20% 0%, rgba(110,231,255,0.10), transparent 60%),
-              radial-gradient(1200px 600px at 80% 0%, rgba(167,139,250,0.10), transparent 60%),
+  background: radial-gradient(1200px 600px at 0% 0%, rgba(59,130,246,0.12), transparent 35%),
+              radial-gradient(1200px 600px at 100% 10%, rgba(168,85,247,0.10), transparent 40%),
               var(--bg);
   color: var(--text);
 }
@@ -25,9 +25,9 @@ body{
   align-items:center;
   justify-content:space-between;
   padding:16px 18px;
-  border-bottom:1px solid var(--border);
-  background: rgba(0,0,0,0.25);
-  backdrop-filter: blur(8px);
+  border-bottom:1px solid rgba(148,163,184,0.3);
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(16px);
   position: sticky;
   top:0;
 }
@@ -45,12 +45,12 @@ body{
 .subtitle{ font-size:12px; color: var(--muted); margin-top:2px; }
 
 .pill{
-  padding:8px 10px;
-  border:1px solid var(--border);
+  padding:8px 12px;
+  border:1px solid rgba(148,163,184,0.35);
   border-radius:999px;
   font-size:12px;
-  color: var(--muted);
-  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  background: #f8fafc;
 }
 
 .container{
@@ -60,12 +60,12 @@ body{
 }
 
 .card{
-  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  background: var(--card);
   border:1px solid var(--border);
   border-radius: 18px;
-  padding: 18px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.35);
-  margin-bottom: 16px;
+  padding: 20px;
+  box-shadow: 0 18px 40px rgba(15,23,42,0.08);
+  margin-bottom: 18px;
 }
 
 h2{ margin: 0 0 12px; }
@@ -89,10 +89,10 @@ h2{ margin: 0 0 12px; }
 }
 .field span{ font-weight: 700; font-size: 13px; }
 .field input, .field select{
-  padding: 12px 12px;
-  border-radius: 12px;
-  border:1px solid var(--border);
-  background: rgba(0,0,0,0.25);
+  padding: 12px 14px;
+  border-radius: 14px;
+  border:1px solid rgba(148,163,184,0.35);
+  background: #f8fafc;
   color: var(--text);
   outline: none;
 }
@@ -241,16 +241,16 @@ h2{ margin: 0 0 12px; }
   width: calc(100% - 28px);
   padding: 12px;
   border-radius: 14px;
-  border: 1px solid rgba(255,107,107,0.35);
-  background: rgba(255,107,107,0.12);
-  color: #ffd5d5;
+  border: 1px solid rgba(220,38,38,0.16);
+  background: rgba(254,226,226,0.9);
+  color: #991b1b;
   font-weight: 700;
 }
 
 .footer{
-  padding: 16px;
+  padding: 18px 16px;
   text-align:center;
   color: var(--muted);
-  border-top:1px solid var(--border);
-  background: rgba(0,0,0,0.25);
+  border-top:1px solid rgba(148,163,184,0.25);
+  background: #ffffff;
 }
