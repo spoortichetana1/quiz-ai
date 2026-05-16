@@ -7,6 +7,7 @@ dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 const app = express();
 const port = process.env.PORT || 8000;
+const host = process.env.HOST || "127.0.0.1";
 const openAIKey = process.env.OPENAI_API_KEY?.trim();
 const useMock = process.env.QUIZ_USE_MOCK === "true";
 const model = process.env.OPENAI_MODEL || "gpt-4o";
@@ -47,8 +48,8 @@ app.use((req, res) => {
   res.status(404).json({ detail: "Not found" });
 });
 
-app.listen(port, () => {
-  console.log(`Quiz backend running on http://127.0.0.1:${port}`);
+app.listen(port, host, () => {
+  console.log(`Quiz backend running on http://${host}:${port}`);
   console.log(`Mock mode: ${useMock}`);
 });
 
