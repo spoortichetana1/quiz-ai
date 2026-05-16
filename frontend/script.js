@@ -1,46 +1,28 @@
-// ===============================
-// AI Quiz Generator (Frontend) — UPDATED
-// ===============================
-//
-// Updated to match your UPDATED index.html:
-// - Adds: statusHint, preset chips, explainSelect, loadingHint
-// - Adds results controls: btnReview, btnTryAgain
-// - Review area is hidden by default and toggled
-//
-// IMPORTANT:
-// Live Server runs the FRONTEND.
-// Backend runs separately on http://127.0.0.1:8000
-//
-
 const BACKEND_BASE_URL = "http://127.0.0.1:8000";
 
-// ------------------------------
-// UI Elements
-// ------------------------------
 const viewSetup = document.getElementById("viewSetup");
 const viewLoading = document.getElementById("viewLoading");
 const viewQuiz = document.getElementById("viewQuiz");
 const viewResults = document.getElementById("viewResults");
 
 const errorBar = document.getElementById("errorBar");
-
 const statusPill = document.getElementById("statusPill");
 const statusHint = document.getElementById("statusHint");
 
 const topicInput = document.getElementById("topicInput");
 const difficultySelect = document.getElementById("difficultySelect");
 const countSelect = document.getElementById("countSelect");
-const explainSelect = document.getElementById("explainSelect");
 
 const btnGenerate = document.getElementById("btnGenerate");
 const btnLoadMock = document.getElementById("btnLoadMock");
-
 const btnCancelLoading = document.getElementById("btnCancelLoading");
+const loadingTitle = document.getElementById("loadingTitle");
 const loadingHint = document.getElementById("loadingHint");
 
 const quizTitle = document.getElementById("quizTitle");
 const quizMeta = document.getElementById("quizMeta");
 const progressText = document.getElementById("progressText");
+const quizProgressBar = document.getElementById("quizProgressBar");
 const questionArea = document.getElementById("questionArea");
 
 const btnPrev = document.getElementById("btnPrev");
@@ -51,40 +33,26 @@ const btnRestart = document.getElementById("btnRestart");
 const scoreText = document.getElementById("scoreText");
 const scoreMessage = document.getElementById("scoreMessage");
 const reviewArea = document.getElementById("reviewArea");
-
 const btnNewQuiz = document.getElementById("btnNewQuiz");
 const btnReview = document.getElementById("btnReview");
 const btnTryAgain = document.getElementById("btnTryAgain");
 
-// Preset chips (optional)
-const presetChips = document.querySelectorAll(".chip[data-preset]");
-
-// ------------------------------
-// App State
-// ------------------------------
-let quiz = null;                // quiz payload from backend
-let currentIndex = 0;           // which question user is on
-let userAnswers = [];           // array of selected option indexes (number or null)
-let abortController = null;     // for cancelling fetch
-
-// We keep a copy of the latest fetched quiz so "Try Again" can restart it cleanly
+let quiz = null;
+let currentIndex = 0;
+let userAnswers = [];
+let abortController = null;
 let lastQuizPayload = null;
 
-// ------------------------------
-// Helpers
-// ------------------------------
 function showView(which) {
-  viewSetup.classList.add("hidden");
-  viewLoading.classList.add("hidden");
-  viewQuiz.classList.add("hidden");
-  viewResults.classList.add("hidden");
+  [viewSetup, viewLoading, viewQuiz, viewResults].forEach((view) => view.classList.add("hidden"));
   which.classList.remove("hidden");
 }
 
 function showError(msg) {
   errorBar.textContent = msg;
   errorBar.classList.remove("hidden");
-  setTimeout(() => errorBar.classList.add("hidden"), 4500);
+  window.clearTimeout(showError.timer);
+  showError.timer = window.setTimeout(() => errorBar.classList.add("hidden"), 4200);
 }
 
 function escapeHtml(text) {
@@ -93,32 +61,21 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function isExplainOn() {
-  // If explainSelect doesn't exist for any reason, default to YES
-  if (!explainSelect) return true;
-  return explainSelect.value === "yes";
-}
-
 function setStatus(ok, mock) {
   if (!statusPill) return;
 
   if (!ok) {
-    statusPill.textContent = "Backend: OFF (demo works)";
-    if (statusHint) statusHint.textContent = "Start backend to use AI generation.";
+    statusPill.textContent = "Backend: offline";
+    statusHint.textContent = "Start the backend to generate quizzes.";
     return;
   }
 
-  statusPill.textContent = `Backend: OK (${mock ? "mock" : "AI"})`;
-  if (statusHint) {
-    statusHint.textContent = mock
-      ? "Backend is ON, but in MOCK mode. Set QUIZ_USE_MOCK=false for real AI."
-      : "Backend is ON and using AI 🎉";
-  }
+  statusPill.textContent = `Backend: online (${mock ? "mock" : "AI"})`;
+  statusHint.textContent = mock
+    ? "Backend is running in mock mode."
+    : "Backend is connected and ready.";
 }
 
-// ------------------------------
-// Backend health
-// ------------------------------
 async function checkBackend() {
   try {
     const res = await fetch(`${BACKEND_BASE_URL}/health`, { method: "GET" });
@@ -129,94 +86,63 @@ async function checkBackend() {
   }
 }
 
-// Call once on load
-checkBackend();
+function updateProgress() {
+  if (!quiz) return;
+  const total = quiz.questions.length;
+  const answered = userAnswers.filter((item) => item !== null).length;
+  const percent = total === 0 ? 0 : Math.round((currentIndex + 1) / total * 100);
+  progressText.textContent = `${currentIndex + 1} / ${total}`;
+  quizProgressBar.style.width = `${percent}%`;
+  btnPrev.disabled = currentIndex === 0;
+  btnNext.disabled = currentIndex === total - 1;
+  btnSubmit.textContent = answered === total ? "Submit Quiz" : `Submit Quiz (${total - answered} unanswered)`;
+}
 
-// ------------------------------
-// Quiz Rendering
-// ------------------------------
 function renderQuestion() {
   if (!quiz) return;
 
   const q = quiz.questions[currentIndex];
-  const total = quiz.questions.length;
-
-  progressText.textContent = `${currentIndex + 1} / ${total}`;
-
-  btnPrev.disabled = currentIndex === 0;
-  btnNext.disabled = currentIndex === total - 1;
-
-  const selected = userAnswers[currentIndex]; // number or null
-
-  const optionsHtml = q.options.map((opt, idx) => {
-    const checked = selected === idx ? "checked" : "";
-    return `
-      <label class="option">
-        <input type="radio" name="opt" value="${idx}" ${checked}/>
-        <span>${escapeHtml(opt)}</span>
-      </label>
-    `;
-  }).join("");
+  const selected = userAnswers[currentIndex];
 
   questionArea.innerHTML = `
     <div class="qText">${escapeHtml(q.question)}</div>
-    <div>${optionsHtml}</div>
+    ${q.options.map((option, index) => `
+      <label class="option">
+        <input type="radio" name="question-option" value="${index}" ${selected === index ? "checked" : ""} />
+        <span>${escapeHtml(option)}</span>
+      </label>
+    `).join("")}
   `;
 
-  // Attach listeners to radio buttons
-  const radios = questionArea.querySelectorAll("input[type='radio']");
-  radios.forEach(r => {
-    r.addEventListener("change", (e) => {
-      const val = Number(e.target.value);
-      userAnswers[currentIndex] = val;
+  questionArea.querySelectorAll("input[type='radio']").forEach((radio) => {
+    radio.addEventListener("change", (event) => {
+      userAnswers[currentIndex] = Number(event.target.value);
+      updateProgress();
     });
   });
-  updateOptionVisuals();
-}
 
-function updateOptionVisuals() {
-  const options = questionArea.querySelectorAll(".option");
-  options.forEach((opt, idx) => {
-    const input = opt.querySelector("input");
-    if (!input) return;
-    const checked = Number(input.value) === userAnswers[currentIndex];
-    opt.classList.toggle("selected", checked);
-    input.addEventListener("focus", () => {
-      opt.classList.add("selected");
-    });
-    input.addEventListener("blur", () => {
-      if (!checked) {
-        opt.classList.remove("selected");
-      }
-    });
-  });
+  updateProgress();
 }
 
 function startQuiz(quizPayload) {
-  lastQuizPayload = quizPayload; // store for "Try Again"
+  lastQuizPayload = quizPayload;
   quiz = quizPayload;
   currentIndex = 0;
   userAnswers = new Array(quiz.questions.length).fill(null);
 
   quizTitle.textContent = `Quiz: ${quiz.topic}`;
-  quizMeta.textContent = `Difficulty: ${quiz.difficulty} • Questions: ${quiz.questions.length}`;
-
-  // Hide results review by default when starting quiz
+  quizMeta.textContent = `${quiz.difficulty.toUpperCase()} • ${quiz.questions.length} questions`;
   if (reviewArea) reviewArea.classList.add("hidden");
+  btnReview.textContent = "Review Answers";
 
   showView(viewQuiz);
   renderQuestion();
 }
 
-// ------------------------------
-// Results
-// ------------------------------
 function calculateScore() {
-  let score = 0;
-  for (let i = 0; i < quiz.questions.length; i++) {
-    if (userAnswers[i] === quiz.questions[i].answer_index) score++;
-  }
-  return score;
+  return quiz.questions.reduce((score, question, index) => (
+    userAnswers[index] === question.answer_index ? score + 1 : score
+  ), 0);
 }
 
 function buildReviewCards() {
@@ -224,29 +150,22 @@ function buildReviewCards() {
 
   reviewArea.innerHTML = "";
 
-  quiz.questions.forEach((q, i) => {
-    const ua = userAnswers[i];
-    const correct = q.answer_index;
-    const isCorrect = ua === correct;
-
-    const badgeClass = isCorrect ? "badge good" : "badge wrong";
-    const badgeText = isCorrect ? "Correct" : "Wrong";
-
-    const yourAnswerText = ua === null ? "No answer" : q.options[ua];
-    const correctText = q.options[correct];
-
-    const explanationBlock = isExplainOn()
-      ? `<div style="margin-top:8px;"><strong>Explanation:</strong> ${escapeHtml(q.explanation)}</div>`
-      : "";
+  quiz.questions.forEach((question, index) => {
+    const userAnswer = userAnswers[index];
+    const correctAnswer = question.answer_index;
+    const isCorrect = userAnswer === correctAnswer;
 
     const card = document.createElement("div");
     card.className = "reviewCard";
+    const explanationHtml = question.explanation
+      ? `<div class="explanation"><strong>Explanation:</strong> ${escapeHtml(question.explanation)}</div>`
+      : "";
     card.innerHTML = `
-      <div class="${badgeClass}">${badgeText}</div>
-      <div class="qText">${escapeHtml(q.question)}</div>
-      <div class="muted"><strong>Your answer:</strong> ${escapeHtml(yourAnswerText)}</div>
-      <div class="muted"><strong>Correct answer:</strong> ${escapeHtml(correctText)}</div>
-      ${explanationBlock}
+      <div class="badge ${isCorrect ? "good" : "wrong"}">${isCorrect ? "Correct" : "Needs review"}</div>
+      <div class="qText">${escapeHtml(question.question)}</div>
+      <div class="muted"><strong>Your answer:</strong> ${escapeHtml(userAnswer === null ? "No answer" : question.options[userAnswer])}</div>
+      <div class="muted"><strong>Correct answer:</strong> ${escapeHtml(question.options[correctAnswer])}</div>
+      ${explanationHtml}
     `;
     reviewArea.appendChild(card);
   });
@@ -255,83 +174,75 @@ function buildReviewCards() {
 function showResults() {
   const total = quiz.questions.length;
   const score = calculateScore();
+  const pct = total === 0 ? 0 : Math.round((score / total) * 100);
+
   scoreText.textContent = `${score} / ${total}`;
 
-  const pct = Math.round((score / total) * 100);
-  let msg = "Good try!";
-  if (pct === 100) msg = "Perfect! 🏆";
-  else if (pct >= 80) msg = "Great job! 🔥";
-  else if (pct >= 60) msg = "Nice! Keep going 💪";
-  else msg = "No worries — practice makes you better.";
+  let message = "Keep going — every quiz builds confidence.";
+  if (pct === 100) message = "Perfect score. Excellent work.";
+  else if (pct >= 80) message = "Strong performance. You're close to mastery.";
+  else if (pct >= 60) message = "Good progress. A second run will help.";
 
-  scoreMessage.textContent = `${msg} (${pct}%)`;
-
-  // Build review cards but keep hidden until user clicks "Review Answers"
+  scoreMessage.textContent = `${message} (${pct}%)`;
   buildReviewCards();
-  if (reviewArea) reviewArea.classList.add("hidden");
-
+  reviewArea.classList.add("hidden");
+  btnReview.textContent = "Review Answers";
   showView(viewResults);
 }
 
-// ------------------------------
-// Demo quiz (no backend needed)
-// ------------------------------
 function loadDemoQuiz() {
-  const demo = {
-    topic: "Demo: Solar System",
+  startQuiz({
+    topic: "Solar System",
     difficulty: "easy",
     questions: [
       {
         question: "Which planet is known as the Red Planet?",
         options: ["Earth", "Mars", "Jupiter", "Venus"],
         answer_index: 1,
-        explanation: "Mars looks reddish because of iron oxide (rust) on its surface."
+        explanation: "Mars appears red because of iron oxide on its surface."
       },
       {
         question: "What is the name of our galaxy?",
         options: ["Andromeda", "Milky Way", "Whirlpool", "Sombrero"],
         answer_index: 1,
-        explanation: "We live in the Milky Way galaxy."
+        explanation: "Our solar system is located in the Milky Way galaxy."
       },
       {
         question: "What does the Sun mainly consist of?",
         options: ["Water", "Rock", "Hydrogen and helium", "Ice"],
         answer_index: 2,
-        explanation: "The Sun is mostly hydrogen, with helium as the second most common element."
+        explanation: "The Sun is mostly hydrogen with helium as the second most common element."
       },
       {
         question: "Which planet has rings that are easy to see?",
         options: ["Saturn", "Mercury", "Mars", "Earth"],
         answer_index: 0,
-        explanation: "Saturn is famous for its large, visible ring system."
+        explanation: "Saturn is the most famous ringed planet in our solar system."
       },
       {
         question: "What do we call a rock that burns in Earth's atmosphere?",
         options: ["Comet", "Meteor", "Planet", "Asteroid belt"],
         answer_index: 1,
-        explanation: "A meteor is the streak of light when a space rock burns up in the atmosphere."
+        explanation: "A meteor is the visible streak caused when a space rock burns up in the atmosphere."
       }
     ]
-  };
-  startQuiz(demo);
+  });
 }
 
-// ------------------------------
-// Generate quiz (calls backend)
-// ------------------------------
 async function generateQuizFromBackend() {
   const topic = topicInput.value.trim();
   const difficulty = difficultySelect.value;
   const count = Number(countSelect.value);
 
   if (topic.length < 2) {
-    showError("Type a topic first (at least 2 letters).");
+    showError("Type a topic first.");
     return;
   }
 
-  showView(viewLoading);
-  if (loadingHint) loadingHint.textContent = "Generating your quiz… This may take a few seconds.";
+  loadingTitle.textContent = "Generating your quiz…";
+  loadingHint.textContent = `Creating ${count} ${difficulty} questions for ${topic}.`;
   btnCancelLoading.disabled = false;
+  showView(viewLoading);
 
   abortController = new AbortController();
 
@@ -345,32 +256,26 @@ async function generateQuizFromBackend() {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const msg = err.detail || `Backend error (${res.status})`;
-      throw new Error(msg);
+      throw new Error(err.detail || `Backend error (${res.status})`);
     }
 
     const quizPayload = await res.json();
     startQuiz(quizPayload);
-
-    // Refresh backend status pill (mock/ai)
     checkBackend();
-  } catch (e) {
-    if (e.name === "AbortError") {
-      showError("Cancelled.");
+  } catch (error) {
+    if (error.name === "AbortError") {
+      showError("Generation cancelled.");
       showView(viewSetup);
       return;
     }
 
-    showError(`Could not generate quiz: ${e.message}`);
+    showError(`Could not generate quiz: ${error.message}`);
     showView(viewSetup);
   } finally {
     abortController = null;
   }
 }
 
-// ------------------------------
-// Button wiring
-// ------------------------------
 btnGenerate.addEventListener("click", generateQuizFromBackend);
 btnLoadMock.addEventListener("click", loadDemoQuiz);
 
@@ -392,13 +297,10 @@ btnNext.addEventListener("click", () => {
 
 btnSubmit.addEventListener("click", () => {
   if (!quiz) return;
-
-  const unanswered = userAnswers.filter(a => a === null).length;
-  if (unanswered > 0) {
-    const ok = confirm(`You left ${unanswered} question(s) unanswered. Submit anyway?`);
-    if (!ok) return;
+  const unanswered = userAnswers.filter((answer) => answer === null).length;
+  if (unanswered > 0 && !confirm(`You still have ${unanswered} unanswered question(s). Submit anyway?`)) {
+    return;
   }
-
   showResults();
 });
 
@@ -414,18 +316,16 @@ btnNewQuiz.addEventListener("click", () => {
   lastQuizPayload = null;
   currentIndex = 0;
   userAnswers = [];
-  if (reviewArea) reviewArea.classList.add("hidden");
+  reviewArea.classList.add("hidden");
+  btnReview.textContent = "Review Answers";
   showView(viewSetup);
 });
 
-// New: Toggle review in results view
 btnReview.addEventListener("click", () => {
-  if (!reviewArea) return;
   reviewArea.classList.toggle("hidden");
   btnReview.textContent = reviewArea.classList.contains("hidden") ? "Review Answers" : "Hide Review";
 });
 
-// New: Try the SAME quiz again (same questions, fresh answers)
 btnTryAgain.addEventListener("click", () => {
   if (!lastQuizPayload) {
     showError("No previous quiz to retry.");
@@ -434,16 +334,5 @@ btnTryAgain.addEventListener("click", () => {
   startQuiz(lastQuizPayload);
 });
 
-// ------------------------------
-// Preset chips
-// ------------------------------
-presetChips.forEach((chip) => {
-  chip.addEventListener("click", () => {
-    const preset = chip.getAttribute("data-preset") || "";
-    topicInput.value = preset;
-    topicInput.focus();
-  });
-});
-
-// Refresh backend status every ~8 seconds (helps kids see when it turns on/off)
+checkBackend();
 setInterval(checkBackend, 8000);

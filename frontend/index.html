@@ -2,138 +2,171 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Quiz Generator</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="style.css" />
   <script src="script.js" defer></script>
 </head>
-
 <body>
+  <div class="background-orb background-orb--one"></div>
+  <div class="background-orb background-orb--two"></div>
+
   <header class="topbar">
     <div class="brand">
       <div class="logo">🧠</div>
       <div>
-        <div class="title">AI Quiz Generator</div>
-        <div class="subtitle">Generate a quiz, answer it, get explanations.</div>
+        <p class="eyebrow">Quiz studio</p>
+        <h1>AI Quiz Generator</h1>
+        <p class="subtitle">A cleaner, faster way to create quizzes, practice answers, and review results.</p>
       </div>
     </div>
 
-    <!-- Updated: clearer backend status + small helper text -->
-    <div class="statusWrap">
-      <div class="pill" id="statusPill">Backend: checking…</div>
-      <div class="statusHint" id="statusHint">Start backend to use AI generation.</div>
+    <div class="statusPanel">
+      <span class="pill" id="statusPill">Backend: checking…</span>
+      <p class="statusHint" id="statusHint">Checking backend connection…</p>
     </div>
   </header>
 
-  <main class="container">
-
-    <!-- SETUP VIEW -->
-    <section class="card" id="viewSetup">
-      <h2>Create your quiz</h2>
-
-      <!-- Updated: quick presets (optional, but helpful for kids) -->
-      <div class="presetRow">
-        <button class="chip" data-preset="Fractions add and subtract">Fractions</button>
-        <button class="chip" data-preset="Solar System planets and facts">Solar System</button>
-        <button class="chip" data-preset="Dinosaurs types and time periods">Dinosaurs</button>
-        <button class="chip" data-preset="Python basics variables loops">Python</button>
+  <main class="page">
+    <section class="hero panel panel--hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Generate in seconds</p>
+        <h2>Turn any topic into a polished quiz experience.</h2>
+        <p class="hero-text">Pick a subject, choose the difficulty, and generate a quiz with one click. The interface stays focused so the quiz itself feels effortless to use.</p>
       </div>
 
-      <div class="grid">
-        <label class="field">
-          <span>Topic</span>
-          <input id="topicInput" type="text" placeholder="e.g., Fractions, Solar System, Dinosaurs" maxlength="80" />
-          <small>Tip: keep it specific. “Fractions add/subtract” is better than “Math”.</small>
-        </label>
-
-        <label class="field">
-          <span>Difficulty</span>
-          <select id="difficultySelect">
-            <option value="easy">Easy</option>
-            <option value="medium" selected>Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-          <small>Easy = basic facts. Hard = deeper thinking.</small>
-        </label>
-
-        <label class="field">
-          <span>Number of questions</span>
-          <select id="countSelect">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="15">15</option>
-          </select>
-          <small>Start with 5 if you want it faster.</small>
-        </label>
-
-        <!-- Updated: include explanations toggle (frontend only; backend always returns explanations) -->
-        <label class="field">
-          <span>Show explanations</span>
-          <select id="explainSelect">
-            <option value="yes" selected>Yes (recommended)</option>
-            <option value="no">No</option>
-          </select>
-          <small>Turn off if you want to test yourself first.</small>
-        </label>
+      <div class="hero-stats">
+        <article class="stat-card">
+          <strong>1 click</strong>
+          <span>from topic to quiz</span>
+        </article>
+        <article class="stat-card">
+          <strong>Clean UI</strong>
+          <span>focuses on answering</span>
+        </article>
+        <article class="stat-card">
+          <strong>Mobile ready</strong>
+          <span>works well on small screens</span>
+        </article>
       </div>
+    </section>
 
-      <div class="row">
-        <button class="btn primary" id="btnGenerate">Generate Quiz (AI)</button>
-        <button class="btn" id="btnLoadMock" title="Loads a demo quiz without calling backend">Load Demo Quiz</button>
-      </div>
-
-      <!-- Updated: clearer “how it works” and a quick “is backend running” checklist -->
-      <div class="hint">
-        <strong>How it works:</strong> Live Server runs this page. Your backend (FastAPI) generates quiz JSON and sends it here.
-        <div class="checklist">
-          <div>✅ Live Server open</div>
-          <div>✅ backend running at <code>http://127.0.0.1:8000</code></div>
-          <div>✅ <code>/health</code> shows <code>"mock": false</code> for real AI</div>
+    <section class="workspace">
+      <section class="panel card" id="viewSetup">
+        <div class="panel-header">
+          <div>
+            <p class="eyebrow">Create quiz</p>
+            <h3>Set up your quiz</h3>
+          </div>
+          <p class="panel-copy">Define the topic with a specific subject and scope, like “Photosynthesis in plants” or “World War II major events,” for sharper results.</p>
         </div>
+
+        <div class="grid">
+          <label class="field">
+            <span>Topic</span>
+            <input id="topicInput" type="text" placeholder="e.g., Photosynthesis in plants" maxlength="80" />
+            <small>Use a clear subject plus a narrow scope for the best quiz quality.</small>
+          </label>
+
+          <label class="field">
+            <span>Difficulty</span>
+            <select id="difficultySelect">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+            <small>Pick a level that matches the learner’s pace.</small>
+          </label>
+
+          <label class="field">
+            <span>Question count</span>
+            <select id="countSelect">
+              <option value="5">5</option>
+              <option value="10" selected>10</option>
+              <option value="15">15</option>
+            </select>
+            <small>Use a smaller set for quick practice or a larger set for deeper study.</small>
+          </label>
+        </div>
+
+        <div class="row action-row">
+          <button class="btn primary" id="btnGenerate">Generate Quiz with AI</button>
+          <button class="btn secondary" id="btnLoadMock">Load Demo Quiz</button>
+        </div>
+      </section>
+
+      <aside class="panel card sidebar">
+        <h3>Helpful tips</h3>
+        <ul class="tip-list">
+          <li>Define the topic as a subject plus scope, not just a single word.</li>
+          <li>Medium difficulty gives the most balanced experience.</li>
+          <li>Start with the demo quiz if you want to test the UI first.</li>
+        </ul>
+        <div class="sidebar-note">
+          The interface is optimized for quick answers, clean feedback, and easy retries.
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel card hidden loading-view" id="viewLoading">
+      <div class="loading-panel">
+        <div>
+          <p class="eyebrow">AI at work</p>
+          <h3 id="loadingTitle">Generating your quiz…</h3>
+          <p class="muted" id="loadingHint">This will appear only after you click Generate Quiz with AI.</p>
+        </div>
+        <div class="loader" aria-hidden="true"></div>
       </div>
+      <button class="btn tertiary" id="btnCancelLoading">Cancel</button>
     </section>
 
-    <!-- LOADING VIEW -->
-    <section class="card hidden" id="viewLoading">
-      <h2>Generating your quiz…</h2>
-      <p class="muted" id="loadingHint">This may take a few seconds.</p>
-      <div class="loader"></div>
-      <button class="btn" id="btnCancelLoading">Cancel</button>
-    </section>
-
-    <!-- QUIZ VIEW -->
-    <section class="card hidden" id="viewQuiz">
+    <section class="panel card hidden" id="viewQuiz">
       <div class="quizHeader">
         <div>
-          <h2 id="quizTitle">Quiz</h2>
+          <p class="eyebrow">Quiz in progress</p>
+          <h3 id="quizTitle">Quiz</h3>
           <p class="muted" id="quizMeta"></p>
         </div>
-        <div class="progress" id="progressText">0 / 0</div>
+        <div class="progressWrap">
+          <span class="progress" id="progressText">0 / 0</span>
+        </div>
+      </div>
+
+      <div class="progress-track" aria-hidden="true">
+        <span id="quizProgressBar"></span>
       </div>
 
       <div id="questionArea" class="questionArea"></div>
 
-      <div class="row spaceBetween">
+      <div class="row button-row">
         <button class="btn" id="btnPrev">← Previous</button>
         <button class="btn primary" id="btnNext">Next →</button>
       </div>
 
-      <div class="row spaceBetween">
+      <div class="row button-row">
         <button class="btn danger" id="btnRestart">Restart</button>
         <button class="btn primary" id="btnSubmit">Submit Quiz</button>
       </div>
     </section>
 
-    <!-- RESULTS VIEW -->
-    <section class="card hidden" id="viewResults">
-      <h2>Results</h2>
-      <div class="scoreBox">
-        <div class="score" id="scoreText">0 / 0</div>
-        <div class="muted" id="scoreMessage">—</div>
+    <section class="panel card hidden" id="viewResults">
+      <div class="resultHeader">
+        <div>
+          <p class="eyebrow">Results</p>
+          <h3>Quiz complete</h3>
+          <p class="muted">See how you performed and try again whenever you like.</p>
+        </div>
       </div>
 
-      <div class="row">
-        <!-- Updated: quick action buttons -->
+      <div class="scoreBox">
+        <div>
+          <div class="score" id="scoreText">0 / 0</div>
+          <p class="muted" id="scoreMessage">—</p>
+        </div>
+      </div>
+
+      <div class="row button-row wrap">
         <button class="btn" id="btnReview">Review Answers</button>
         <button class="btn" id="btnTryAgain">Try Same Quiz Again</button>
         <button class="btn primary" id="btnNewQuiz">Create New Quiz</button>
@@ -142,21 +175,11 @@
       <div id="reviewArea" class="reviewArea hidden"></div>
     </section>
 
-    <!-- ERROR BAR -->
     <div class="errorBar hidden" id="errorBar"></div>
-
   </main>
 
   <footer class="footer">
-    <span>Tip: If backend is off, you can still use “Load Demo Quiz”.</span>
+    <p>Use the demo quiz or generate a new one from the topic builder above.</p>
   </footer>
-
-  <!-- NOTE:
-    This updated HTML adds a few new IDs:
-      - statusHint, explainSelect, loadingHint
-      - btnReview, btnTryAgain
-      - reviewArea now starts hidden in results view
-    Your script.js should be updated to use these (I can generate updated script.js next).
-  -->
 </body>
 </html>
