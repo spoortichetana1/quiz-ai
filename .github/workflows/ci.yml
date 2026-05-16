@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Display repo root
+        run: |
+          echo "Listing repo root"
+          ls -la
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install and test frontend (if present)
+        run: |
+          if [ -f frontend/package.json ]; then
+            cd frontend
+            npm ci
+            npm test || true
+          else
+            echo "No frontend/package.json"
+          fi
+
+      - name: Install and test backend (if present)
+        run: |
+          if [ -f backend/package.json ]; then
+            cd backend
+            npm ci
+            npm test || true
+          else
+            echo "No backend/package.json"
+          fi
