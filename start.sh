@@ -29,39 +29,14 @@ kill_port "$BACKEND_PORT"
 
 (
   cd "$ROOT_DIR/backend"
+  HOST="${HOST:-127.0.0.1}" PORT="$BACKEND_PORT" \
   npm start
 ) &
 backend_pid=$!
 
 (
-  ROOT_DIR="$ROOT_DIR" FRONTEND_PORT="$FRONTEND_PORT" python3 - <<'PY'
-import http.server
-import os
-import pathlib
-import socketserver
-
-root_dir = pathlib.Path(os.environ["ROOT_DIR"]).resolve() / "frontend"
-port = int(os.environ["FRONTEND_PORT"])
-
-
-class FrontendHandler(http.server.SimpleHTTPRequestHandler):
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, directory=str(root_dir), **kwargs)
-
-  def do_GET(self):
-    request_path = self.path.split("?", 1)[0]
-    if request_path == "/" or request_path.endswith("/") or "." not in pathlib.PurePosixPath(request_path).name:
-      self.path = "/index.html"
-    return super().do_GET()
-
-
-class ReusableTCPServer(socketserver.TCPServer):
-  allow_reuse_address = True
-
-
-with ReusableTCPServer(("127.0.0.1", port), FrontendHandler) as httpd:
-  httpd.serve_forever()
-PY
+  cd "$ROOT_DIR/frontend"
+  python3 -m http.server "$FRONTEND_PORT" --bind 127.0.0.1
 ) &
 frontend_pid=$!
 

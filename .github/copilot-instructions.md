@@ -1,4 +1,4 @@
-# AGENTS.md
+# copilot-instructions.md
 
 # Purpose
 
